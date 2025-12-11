@@ -64,9 +64,11 @@ python main.py analyze /path/to/any/cpp/project
 ## Quick Commands
 
 ```bash
-# Generate flowcharts
-python main.py flowchart --type function_call
-python main.py flowchart --type class
+# Generate PlantUML diagrams
+python main.py analyze /path/to/project --flowchart all
+
+# View diagrams
+python view_plantuml.py
 
 # Ask questions
 python main.py query "What is the main architecture?"
@@ -93,12 +95,12 @@ python main.py analyze D:/git-project/poseidonos
 # Creating vector store with 1390 chunks...
 # ✓ Project analysis complete!
 
-# 2. Generate class diagram
-python main.py flowchart --type class
+# 2. View diagrams
+python view_plantuml.py
 
 # Output:
-# Generating class diagram...
-# ✓ Class diagram saved to: ./flowcharts/class_diagram.png
+# ✓ HTML report generated: diagrams_report.html
+# Download via MobaXterm and open in browser!
 
 # 3. Ask a question
 python main.py query "What are the main storage classes?"
@@ -110,10 +112,12 @@ python main.py query "What are the main storage classes?"
 # 4. Interactive exploration
 python main.py interactive
 
+# First analyze, then:
 # > query How does initialization work?
-# > flowchart function_call
 # > stats
 # > exit
+
+# Note: For diagrams, use: python main.py analyze /path --flowchart all
 ```
 
 ## Common Issues
@@ -131,10 +135,11 @@ ollama pull qwen2.5
 ollama pull jina/jina-embeddings-v2-base-en
 ```
 
-### "Graphviz error"
+### "Cannot view diagrams"
 ```bash
-# Install Graphviz
-sudo apt install graphviz
+# Generate HTML report
+python view_plantuml.py
+# Download diagrams_report.html and open in browser
 ```
 
 ## What's Next?
@@ -150,14 +155,15 @@ Edit `config.yaml` to customize:
 
 ```yaml
 ollama:
-  llm_model: "qwen2.5"              # Change to llama3.2, gemma:7b, etc.
+  llm_model: "qwen3-coder:latest"   # Best for C++ code analysis
   embedding_model: "jina/jina-embeddings-v2-base-en"
 
 parsing:
   ignore_dirs: ["build", "test"]    # Add more dirs to ignore
   
 flowchart:
-  output_format: "svg"              # Change to svg, pdf
+  output_format: "puml"             # PlantUML text format
+  output_dir: "./diagrams"          # Output directory
   max_depth: 5                      # Adjust call graph depth
 ```
 
