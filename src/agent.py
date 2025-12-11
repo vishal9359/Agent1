@@ -5,8 +5,9 @@ Main AI Agent for C++ Project Analysis
 from typing import Optional, Dict, Any, List
 from pathlib import Path
 from langchain_ollama import ChatOllama
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -162,8 +163,8 @@ class CPPAnalysisAgent:
         console.print(f"\n[cyan]Question:[/cyan] {question}")
         
         try:
-            result = self.qa_chain.invoke({"query": question})
-            answer = result['result']
+            # With LCEL, the chain returns the answer directly as a string
+            answer = self.qa_chain.invoke(question)
             
             console.print(f"[green]Answer:[/green] {answer}\n")
             return answer
@@ -251,13 +252,20 @@ Answer:"""
             input_variables=["context", "question"]
         )
         
-        # Create QA chain
-        self.qa_chain = RetrievalQA.from_chain_type(
-            llm=self.llm,
-            chain_type="stuff",
-            retriever=self.rag_system.get_retriever(k=5),
-            return_source_documents=False,
-            chain_type_kwargs={"prompt": PROMPT}
+        # Create QA chain using LCEL (LangChain Expression Language)
+        def format_docs(docs):
+            return "\n\n".join(doc.page_content for doc in docs)
+        
+        retriever = self.rag_system.get_retriever(k=5)
+        
+        self.qa_chain = (
+            {
+                "context": retriever | format_docs,
+                "question": RunnablePassthrough()
+            }
+            | PROMPT
+            | self.llm
+            | StrOutputParser()
         )
         
         console.print("[green]✓ QA chain ready[/green]")
