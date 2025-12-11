@@ -3,7 +3,7 @@
 # Ollama Settings
 ollama:
   base_url: "http://localhost:11434"
-  llm_model: "qwen2.5"  # Main LLM for analysis
+  llm_model: "qwen3-coder:latest"  # Main LLM for analysis (code-specialized)
   embedding_model: "jina/jina-embeddings-v2-base-en"  # Embedding model
   temperature: 0.3
   max_tokens: 4096
