@@ -1,0 +1,30 @@
+# AI Agent Configuration
+
+# Ollama Settings
+ollama:
+  base_url: "http://localhost:11434"
+  llm_model: "qwen2.5"  # Main LLM for analysis
+  embedding_model: "jina/jina-embeddings-v2-base-en"  # Embedding model
+  temperature: 0.3
+  max_tokens: 4096
+
+# Vector Database Settings
+vectordb:
+  persist_directory: "./chroma_db"
+  collection_name: "cpp_codebase"
+  chunk_size: 1000
+  chunk_overlap: 200
+
+# Code Parsing Settings
+parsing:
+  file_extensions: [".cpp", ".cc", ".cxx", ".h", ".hpp", ".hxx"]
+  max_file_size_mb: 10
+  ignore_dirs: ["build", "bin", "obj", ".git", "node_modules", "test", "tests"]
+
+# Flowchart Settings
+flowchart:
+  output_format: "png"  # png, svg, pdf
+  output_dir: "./flowcharts"
+  max_depth: 5  # Maximum call depth to analyze
+  include_comments: true
+
