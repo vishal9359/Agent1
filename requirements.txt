@@ -9,6 +9,7 @@ langchain-ollama
 
 # Vector Store
 chromadb
+langchain-chroma
 
 # Code Parsing
 tree-sitter

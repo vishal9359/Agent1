@@ -128,11 +128,12 @@ except ImportError as e:
     print("   ✗ chromadb (REQUIRED)")
 
 try:
-    from langchain_community.vectorstores import Chroma
-    print("   ✓ Chroma vectorstore")
+    from langchain_chroma import Chroma
+    print("   ✓ langchain-chroma (Chroma vectorstore)")
 except ImportError as e:
-    errors.append(f"Chroma vectorstore: {e}")
-    print("   ✗ Chroma vectorstore")
+    errors.append(f"langchain-chroma: {e}")
+    print("   ✗ langchain-chroma (REQUIRED)")
+    print("      Install with: pip install langchain-chroma")
 
 # 6. Check tree-sitter
 print("\n6. Checking code parser...")
