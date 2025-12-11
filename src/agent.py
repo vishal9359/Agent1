@@ -74,31 +74,36 @@ class CPPAnalysisAgent:
         """
         console.print(f"\n[bold cyan]Analyzing project: {project_path}[/bold cyan]\n")
         
+        # Parse the project (always needed for statistics and flowcharts)
+        console.print("[bold blue]Step 1: Parsing C++ code...[/bold blue]")
+        self.parser.parse_project(project_path)
+        
+        if not self.parser.functions and not self.parser.classes:
+            console.print("[red]No C++ code found. Check project path.[/red]")
+            return
+        
         # Check if vector store exists
         vectorstore_exists = self.rag_system.load_vectorstore()
         
         if vectorstore_exists and not force_reindex:
-            console.print("[yellow]Using existing vector store. Use --force to re-index.[/yellow]")
+            console.print("\n[yellow]Using existing vector store. Use --force to re-index.[/yellow]")
         else:
-            # Parse the project
-            console.print("[bold blue]Step 1: Parsing C++ code...[/bold blue]")
-            self.parser.parse_project(project_path)
-            
             # Create vector store
             console.print("\n[bold blue]Step 2: Creating vector store...[/bold blue]")
             code_chunks = self.parser.get_code_chunks()
             
             if not code_chunks:
-                console.print("[red]No code chunks found. Check project path.[/red]")
+                console.print("[red]No code chunks found.[/red]")
                 return
             
             self.rag_system.create_vectorstore(code_chunks)
         
         # Create QA chain
+        console.print("\n[bold blue]Step 3: Setting up QA system...[/bold blue]")
         self._setup_qa_chain()
         
         # Generate summary
-        console.print("\n[bold blue]Step 3: Generating project summary...[/bold blue]")
+        console.print("\n[bold blue]Step 4: Generating project summary...[/bold blue]")
         self._generate_summary()
         
         console.print("\n[green]✓ Project analysis complete![/green]")
@@ -273,6 +278,11 @@ Answer:"""
     def _generate_summary(self) -> None:
         """Generate project summary"""
         stats = self.get_statistics()
+        
+        # Check if stats are available
+        if not stats or 'total_functions' not in stats:
+            console.print("[yellow]No statistics available to generate summary[/yellow]")
+            return
         
         # Ask AI for high-level summary
         summary_query = (
