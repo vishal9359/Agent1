@@ -55,6 +55,8 @@ Examples:
     analyze_parser = subparsers.add_parser('analyze', help='Analyze C++ project')
     analyze_parser.add_argument('project_path', help='Path to C++ project')
     analyze_parser.add_argument('--force', action='store_true', help='Force re-indexing')
+    analyze_parser.add_argument('--flowchart', nargs='*', choices=['function_call', 'class', 'module', 'all'],
+                                help='Generate flowcharts after analysis (e.g., --flowchart function_call class)')
     analyze_parser.add_argument('--config', default='config.yaml', help='Config file path')
     
     # Flowchart command
@@ -98,6 +100,19 @@ Examples:
         # Execute command
         if args.command == 'analyze':
             agent.analyze_project(args.project_path, force_reindex=args.force)
+            
+            # Generate flowcharts if requested
+            if hasattr(args, 'flowchart') and args.flowchart is not None:
+                if len(args.flowchart) == 0 or 'all' in args.flowchart:
+                    # Generate all flowcharts
+                    console.print("\n[bold cyan]Generating all flowcharts...[/bold cyan]")
+                    agent.generate_flowchart('function_call')
+                    agent.generate_flowchart('class')
+                    agent.generate_flowchart('module')
+                else:
+                    # Generate specified flowcharts
+                    for ftype in args.flowchart:
+                        agent.generate_flowchart(ftype)
             
         elif args.command == 'flowchart':
             agent.generate_flowchart(
