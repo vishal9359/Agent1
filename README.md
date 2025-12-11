@@ -1,21 +1,21 @@
 # C++ Project Analysis Agent
 
-An AI-powered agent for analyzing C++ projects using LangChain, Ollama, and ChromaDB. This agent can understand complete C++ projects, perform RAG (Retrieval-Augmented Generation) queries, and generate flowchart diagrams.
+An AI-powered agent for analyzing C++ projects using LangChain, Ollama, and ChromaDB. This agent can understand complete C++ projects, perform RAG (Retrieval-Augmented Generation) queries, and generate PlantUML diagrams.
 
 ## Features
 
 - 🔍 **Code Understanding**: Parse and understand complete C++ projects using tree-sitter
 - 🤖 **RAG System**: Query codebase using natural language with ChromaDB vector database
-- 📊 **Flowchart Generation**: Generate function call graphs, class diagrams, and module structures
+- 📊 **PlantUML Diagrams**: Generate text-based diagrams (function calls, classes, modules)
 - 🔓 **Open Source**: Uses only open-source LLM models via Ollama
 - 🎯 **Modular Design**: Works with any C++ project
+- 📝 **SSH Friendly**: Text-based diagrams perfect for terminal/SSH environments
 
 ## Requirements
 
 - **OS**: Ubuntu Server 24.04 (or compatible Linux)
 - **Python**: 3.11.14
-- **Ollama**: Installed with models (qwen2.5, jina/jina-embeddings-v2-base-en, etc.)
-- **Graphviz**: For flowchart generation
+- **Ollama**: Installed with models (qwen3-coder, jina/jina-embeddings-v2-base-en, etc.)
 
 ### Pre-installed Python Packages
 - langchain-classic 1.0.0
@@ -26,21 +26,14 @@ An AI-powered agent for analyzing C++ projects using LangChain, Ollama, and Chro
 
 ## Installation
 
-### 1. Install Graphviz (for flowcharts)
-
-```bash
-sudo apt update
-sudo apt install graphviz
-```
-
-### 2. Install Python Dependencies
+### 1. Install Python Dependencies
 
 ```bash
 cd Agent1
 pip install -r requirements.txt
 ```
 
-### 3. Verify Ollama Models
+### 2. Verify Ollama Models
 
 Make sure you have the required models pulled:
 
@@ -49,24 +42,24 @@ ollama list
 ```
 
 You should see at least:
-- qwen2.5 (or another LLM model)
+- qwen3-coder (or another LLM model)
 - jina/jina-embeddings-v2-base-en (or another embedding model)
 
 If not, pull them:
 
 ```bash
-ollama pull qwen2.5
+ollama pull qwen3-coder:latest
 ollama pull jina/jina-embeddings-v2-base-en
 ```
 
-### 4. Configure the Agent
+### 3. Configure the Agent
 
 Edit `config.yaml` to match your setup:
 
 ```yaml
 ollama:
   base_url: "http://localhost:11434"
-  llm_model: "qwen2.5"
+  llm_model: "qwen3-coder:latest"
   embedding_model: "jina/jina-embeddings-v2-base-en"
 ```
 
@@ -83,25 +76,44 @@ python main.py analyze D:/git-project/poseidonos
 
 # Force re-indexing
 python main.py analyze /path/to/cpp/project --force
+
+# Analyze and generate diagrams in one command (RECOMMENDED)
+python main.py analyze /path/to/cpp/project --flowchart all
 ```
 
-### Generate Flowcharts
+### Generate PlantUML Diagrams
 
 ```bash
-# Function call graph
-python main.py flowchart --type function_call
+# Generate all diagrams during analysis (recommended)
+python main.py analyze /path/to/cpp/project --flowchart all
 
-# Class diagram
-python main.py flowchart --type class
+# Or generate specific diagrams
+python main.py analyze /path/to/cpp/project --flowchart function_call class
 
-# Module structure
-python main.py flowchart --type module
-
-# Function call graph from specific entry point
-python main.py flowchart --type function_call --entry-point main
+# Generate function call graph
+python main.py analyze /path/to/cpp/project --flowchart function_call --entry-point main
 ```
 
-Flowcharts are saved in the `./flowcharts/` directory as PNG files by default.
+PlantUML diagrams are saved in the `./diagrams/` directory as `.puml` text files.
+
+### View PlantUML Diagrams
+
+```bash
+# Generate HTML report with all diagrams
+python view_plantuml.py
+
+# View as text (they're human-readable!)
+cat diagrams/class_diagram.puml
+
+# Or copy content and paste at: https://planttext.com/
+```
+
+**For SSH/MobaXterm users:**
+1. Generate HTML report: `python view_plantuml.py`
+2. Download `diagrams_report.html` via MobaXterm file browser
+3. Open in browser and click "View Online" buttons
+
+See `README_PLANTUML.md` for complete viewing options.
 
 ### Query the Codebase
 
@@ -149,15 +161,17 @@ Agent1/
 ├── config.yaml                # Configuration file
 ├── requirements.txt           # Python dependencies
 ├── README.md                  # This file
+├── README_PLANTUML.md         # PlantUML diagrams guide
+├── view_plantuml.py           # Generate HTML report for diagrams
 ├── src/
 │   ├── __init__.py
 │   ├── agent.py              # Main agent orchestrator
 │   ├── config_loader.py      # Configuration management
 │   ├── cpp_parser.py         # C++ code parser (tree-sitter)
 │   ├── rag_system.py         # RAG system (ChromaDB)
-│   └── flowchart_generator.py # Flowchart generation (graphviz)
+│   └── plantuml_generator.py # PlantUML diagram generation
 ├── chroma_db/                # Vector database (created automatically)
-└── flowcharts/               # Generated flowcharts (created automatically)
+└── diagrams/                 # Generated PlantUML diagrams (created automatically)
 ```
 
 ## Configuration
@@ -186,10 +200,10 @@ parsing:
   max_file_size_mb: 10
   ignore_dirs: ["build", "bin", "obj", ".git", "node_modules", "test", "tests"]
 
-# Flowchart Settings
+# PlantUML Diagram Settings
 flowchart:
-  output_format: "png"
-  output_dir: "./flowcharts"
+  output_format: "puml"
+  output_dir: "./diagrams"
   max_depth: 5
   include_comments: true
 ```
@@ -197,24 +211,23 @@ flowchart:
 ## Example Workflow
 
 ```bash
-# 1. Analyze your C++ project
-python main.py analyze D:/git-project/poseidonos
+# 1. Analyze your C++ project and generate all diagrams
+python main.py analyze /home/user/poseidonos --flowchart all
 
-# 2. Generate function call graph
-python main.py flowchart --type function_call
+# 2. View diagrams
+python view_plantuml.py  # Creates diagrams_report.html
 
-# 3. Generate class diagram
-python main.py flowchart --type class
-
-# 4. Ask questions
+# 3. Ask questions
 python main.py query "What is the main architecture of this project?"
 python main.py query "How does the storage layer work?"
 
-# 5. Search for specific code
+# 4. Search for specific code
 python main.py search "buffer management"
 
-# 6. View statistics
+# 5. View statistics
 python main.py stats
+
+# 6. Download diagrams_report.html and open in browser to see diagrams!
 ```
 
 ## Supported Ollama Models
@@ -222,10 +235,10 @@ python main.py stats
 The agent works with any Ollama model. Recommended models:
 
 **LLM Models** (for analysis):
-- qwen2.5 (recommended)
+- qwen3-coder:latest (recommended for C++ code)
+- qwen2.5
 - llama3.2
 - gemma:7b
-- mistral
 
 **Embedding Models** (for RAG):
 - jina/jina-embeddings-v2-base-en (recommended)
@@ -236,8 +249,8 @@ To use a different model, update `config.yaml`:
 
 ```yaml
 ollama:
-  llm_model: "llama3.2"
-  embedding_model: "nomic-embed-text"
+  llm_model: "qwen3-coder:latest"  # Best for C++ code analysis
+  embedding_model: "jina/jina-embeddings-v2-base-en"
 ```
 
 ## Troubleshooting
@@ -260,11 +273,16 @@ ollama pull qwen2.5
 ollama pull jina/jina-embeddings-v2-base-en
 ```
 
-### Issue: "Graphviz not found"
+### Issue: "Cannot view PlantUML diagrams"
 
 ```bash
-# Install graphviz
-sudo apt install graphviz
+# Generate HTML report
+python view_plantuml.py
+
+# Or view as text
+cat diagrams/class_diagram.puml
+
+# Or paste content at: https://planttext.com/
 ```
 
 ### Issue: "Out of memory"
