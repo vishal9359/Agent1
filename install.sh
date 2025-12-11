@@ -49,17 +49,10 @@ else
     echo "Please start Ollama: ollama serve"
 fi
 
-# Install Graphviz
+# Note: PlantUML diagrams are text-based, no Graphviz needed!
 echo ""
-echo "Checking Graphviz..."
-if ! command -v dot &> /dev/null; then
-    echo "Graphviz not found. Installing..."
-    sudo apt update
-    sudo apt install -y graphviz
-    echo "✓ Graphviz installed"
-else
-    echo "✓ Graphviz is already installed"
-fi
+echo "Note: Agent uses PlantUML (text-based diagrams)"
+echo "      No additional visualization tools required!"
 
 # Install Python dependencies
 echo ""
