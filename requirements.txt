@@ -15,9 +15,8 @@ langchain-chroma
 tree-sitter
 tree-sitter-cpp==0.23.4
 
-# Visualization
-graphviz
-pillow
+# PlantUML diagrams are text-based, no additional packages needed
+# Optional: Install plantuml locally to generate images from .puml files
 
 # Utilities
 python-dotenv

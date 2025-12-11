@@ -21,10 +21,10 @@ parsing:
   max_file_size_mb: 10
   ignore_dirs: ["build", "bin", "obj", ".git", "node_modules", "test", "tests"]
 
-# Flowchart Settings
+# PlantUML Diagram Settings
 flowchart:
-  output_format: "png"  # png, svg, pdf
-  output_dir: "./flowcharts"
+  output_format: "puml"  # PlantUML text format
+  output_dir: "./diagrams"
   max_depth: 5  # Maximum call depth to analyze
   include_comments: true
 

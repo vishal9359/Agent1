@@ -15,7 +15,7 @@ from rich.table import Table
 from .config_loader import ConfigLoader
 from .cpp_parser import CPPCodeParser
 from .rag_system import RAGSystem
-from .flowchart_generator import FlowchartGenerator
+from .plantuml_generator import PlantUMLGenerator
 
 console = Console()
 
@@ -50,7 +50,7 @@ class CPPAnalysisAgent:
         
         self.parser = CPPCodeParser(parsing_config)
         self.rag_system = RAGSystem(ollama_config, vectordb_config)
-        self.flowchart_generator = FlowchartGenerator(flowchart_config)
+        self.diagram_generator = PlantUMLGenerator(flowchart_config)
         
         # Initialize LLM
         self.llm = ChatOllama(
@@ -115,15 +115,15 @@ class CPPAnalysisAgent:
         output_name: Optional[str] = None
     ) -> str:
         """
-        Generate flowchart
+        Generate PlantUML diagram
         
         Args:
-            flowchart_type: Type of flowchart (function_call, class, module)
+            flowchart_type: Type of diagram (function_call, class, module)
             entry_point: Entry point for function call graph
             output_name: Custom output name
             
         Returns:
-            Path to generated flowchart
+            Path to generated PlantUML file
         """
         if not self.parser.functions and not self.parser.classes:
             console.print("[red]No parsed data. Run analyze_project first.[/red]")
@@ -132,23 +132,23 @@ class CPPAnalysisAgent:
         output_name = output_name or flowchart_type
         
         if flowchart_type == "function_call":
-            return self.flowchart_generator.generate_function_call_graph(
+            return self.diagram_generator.generate_function_call_graph(
                 self.parser.functions,
                 entry_point=entry_point,
                 output_name=output_name
             )
         elif flowchart_type == "class":
-            return self.flowchart_generator.generate_class_diagram(
+            return self.diagram_generator.generate_class_diagram(
                 self.parser.classes,
                 output_name=output_name
             )
         elif flowchart_type == "module":
-            return self.flowchart_generator.generate_module_structure(
+            return self.diagram_generator.generate_module_structure(
                 self.parser.files_content,
                 output_name=output_name
             )
         else:
-            console.print(f"[red]Unknown flowchart type: {flowchart_type}[/red]")
+            console.print(f"[red]Unknown diagram type: {flowchart_type}[/red]")
             return ""
     
     def query(self, question: str) -> str:
@@ -216,7 +216,7 @@ class CPPAnalysisAgent:
             console.print("[red]No parsed data. Run analyze_project first.[/red]")
             return {}
         
-        stats = self.flowchart_generator.generate_summary_stats(
+        stats = self.diagram_generator.generate_summary_stats(
             self.parser.functions,
             self.parser.classes
         )

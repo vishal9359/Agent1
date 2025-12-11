@@ -1,0 +1,195 @@
+#!/usr/bin/env python3
+"""
+View PlantUML diagrams - Generate HTML with embedded SVG
+"""
+
+import sys
+import subprocess
+from pathlib import Path
+from rich.console import Console
+
+console = Console()
+
+
+def generate_html_from_plantuml(diagrams_dir: str = "diagrams", output_file: str = "diagrams_report.html"):
+    """Generate HTML report with PlantUML diagrams"""
+    
+    diagrams_path = Path(diagrams_dir)
+    if not diagrams_path.exists():
+        console.print(f"[red]Error: {diagrams_dir} directory not found[/red]")
+        return
+    
+    # Find all .puml files
+    puml_files = list(diagrams_path.glob("*.puml"))
+    
+    if not puml_files:
+        console.print(f"[yellow]No .puml files found in {diagrams_dir}[/yellow]")
+        return
+    
+    console.print(f"[blue]Found {len(puml_files)} PlantUML diagrams[/blue]")
+    
+    # Generate HTML
+    html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C++ Project PlantUML Diagrams</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .diagram {
+            background: white;
+            margin: 30px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .diagram h2 {
+            color: #4CAF50;
+            margin-top: 0;
+        }
+        .code-block {
+            background: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .buttons {
+            margin: 15px 0;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 4px;
+            display: inline-block;
+            margin-right: 10px;
+            border: none;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .btn-secondary {
+            background-color: #008CBA;
+        }
+        .btn-secondary:hover {
+            background-color: #007399;
+        }
+        .metadata {
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: #666;
+            border-top: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 C++ Project PlantUML Diagrams</h1>
+    <p style="text-align: center; color: #666;">Text-based diagrams that are easy to view, edit, and version control</p>
+    
+"""
+    
+    # Add each diagram
+    for puml_file in sorted(puml_files):
+        # Read PlantUML content
+        content = puml_file.read_text(encoding='utf-8')
+        
+        # Generate title from filename
+        title = puml_file.stem.replace('_', ' ').title()
+        
+        # PlantUML online server URL
+        online_url = f"http://www.plantuml.com/plantuml/uml/{puml_file.name}"
+        
+        html += f"""
+    <div class="diagram">
+        <h2>📈 {title}</h2>
+        <div class="buttons">
+            <a href="{online_url}" target="_blank" class="btn">View Online (PlantUML Server)</a>
+            <a href="https://planttext.com/" target="_blank" class="btn btn-secondary">Edit on PlantText</a>
+            <button onclick="copyToClipboard('{puml_file.name}')" class="btn btn-secondary">Copy Code</button>
+        </div>
+        <div class="code-block" id="{puml_file.name}">{content}</div>
+        <div class="metadata">
+            <strong>File:</strong> {puml_file.name}<br>
+            <strong>Size:</strong> {puml_file.stat().st_size} bytes<br>
+            <strong>Lines:</strong> {len(content.splitlines())}
+        </div>
+    </div>
+"""
+    
+    html += """
+    <div class="footer">
+        <h3>How to View PlantUML Diagrams</h3>
+        <p><strong>Option 1:</strong> Click "View Online" button above (uses PlantUML server)</p>
+        <p><strong>Option 2:</strong> Copy code and paste at <a href="https://planttext.com/" target="_blank">PlantText.com</a></p>
+        <p><strong>Option 3:</strong> Install PlantUML extension in VSCode</p>
+        <p><strong>Option 4:</strong> Install PlantUML locally: <code>sudo apt install plantuml</code><br>
+           Then run: <code>plantuml diagram.puml</code></p>
+        <hr style="margin: 30px 0;">
+        <p>Generated by C++ Analysis Agent</p>
+        <p>Powered by LangChain + Ollama + ChromaDB + PlantUML</p>
+    </div>
+    
+    <script>
+    function copyToClipboard(elementId) {
+        const text = document.getElementById(elementId).textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('PlantUML code copied to clipboard!');
+        });
+    }
+    </script>
+</body>
+</html>
+"""
+    
+    # Write HTML file
+    output_path = Path(output_file)
+    output_path.write_text(html, encoding='utf-8')
+    
+    console.print(f"[green]✓ HTML report generated: {output_path.absolute()}[/green]")
+    console.print(f"[green]✓ Included {len(puml_files)} PlantUML diagrams[/green]")
+    console.print(f"\n[cyan]To view:[/cyan]")
+    console.print(f"  1. Download: scp user@server:{output_path.absolute()} .")
+    console.print(f"  2. Open in browser: {output_path.name}")
+    console.print(f"  3. Click 'View Online' buttons to see rendered diagrams")
+
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        diagrams_dir = sys.argv[1]
+    else:
+        diagrams_dir = "diagrams"
+    
+    if len(sys.argv) > 2:
+        output_file = sys.argv[2]
+    else:
+        output_file = "diagrams_report.html"
+    
+    generate_html_from_plantuml(diagrams_dir, output_file)
+
