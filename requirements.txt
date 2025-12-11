@@ -10,7 +10,7 @@ chromadb==0.6.3
 
 # Code Parsing
 tree-sitter==0.25.2
-tree-sitter-cpp==0.25.1
+tree-sitter-cpp==0.23.4
 
 # Visualization
 graphviz==0.20.3
