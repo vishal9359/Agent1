@@ -12,6 +12,22 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 
 @dataclass
+class ControlFlowNode:
+    """Represents a control flow node"""
+    type: str  # 'if', 'else', 'for', 'while', 'switch', 'case', 'return', 'call', 'statement'
+    condition: Optional[str] = None
+    body_nodes: List['ControlFlowNode'] = None
+    else_nodes: List['ControlFlowNode'] = None
+    label: Optional[str] = None
+    
+    def __post_init__(self):
+        if self.body_nodes is None:
+            self.body_nodes = []
+        if self.else_nodes is None:
+            self.else_nodes = []
+
+
+@dataclass
 class FunctionInfo:
     """Information about a C++ function"""
     name: str
@@ -22,10 +38,13 @@ class FunctionInfo:
     line_number: int
     docstring: Optional[str] = None
     calls: List[str] = None  # Functions called by this function
+    control_flow: List[ControlFlowNode] = None  # Control flow graph
     
     def __post_init__(self):
         if self.calls is None:
             self.calls = []
+        if self.control_flow is None:
+            self.control_flow = []
 
 
 @dataclass
@@ -193,6 +212,9 @@ class CPPCodeParser:
             # Get function calls
             calls = self._extract_function_calls(body_node, content) if body_node else []
             
+            # Extract control flow
+            control_flow = self._extract_control_flow(body_node, content) if body_node else []
+            
             return FunctionInfo(
                 name=func_name,
                 return_type=return_type,
@@ -200,7 +222,8 @@ class CPPCodeParser:
                 body=body,
                 file_path=file_path,
                 line_number=node.start_point[0] + 1,
-                calls=calls
+                calls=calls,
+                control_flow=control_flow
             )
         except Exception as e:
             return None
@@ -287,6 +310,226 @@ class CPPCodeParser:
             calls.extend(self._extract_function_calls(child, content))
         
         return calls
+    
+    def _extract_control_flow(self, node: Node, content: str, depth: int = 0) -> List[ControlFlowNode]:
+        """Extract control flow structures from a node"""
+        flow_nodes = []
+        
+        if not node:
+            return flow_nodes
+        
+        # Limit recursion depth
+        if depth > 10:
+            return flow_nodes
+        
+        for child in node.children:
+            if child.type == 'if_statement':
+                flow_node = self._parse_if_statement(child, content, depth)
+                if flow_node:
+                    flow_nodes.append(flow_node)
+            
+            elif child.type == 'for_statement':
+                flow_node = self._parse_for_statement(child, content, depth)
+                if flow_node:
+                    flow_nodes.append(flow_node)
+            
+            elif child.type == 'while_statement':
+                flow_node = self._parse_while_statement(child, content, depth)
+                if flow_node:
+                    flow_nodes.append(flow_node)
+            
+            elif child.type == 'switch_statement':
+                flow_node = self._parse_switch_statement(child, content, depth)
+                if flow_node:
+                    flow_nodes.append(flow_node)
+            
+            elif child.type == 'return_statement':
+                return_expr = content[child.start_byte:child.end_byte].strip()
+                flow_nodes.append(ControlFlowNode(
+                    type='return',
+                    label=return_expr[:50]  # Limit length
+                ))
+            
+            elif child.type == 'call_expression':
+                call_name = self._get_call_name(child, content)
+                if call_name:
+                    flow_nodes.append(ControlFlowNode(
+                        type='call',
+                        label=call_name
+                    ))
+            
+            elif child.type == 'expression_statement':
+                # Check if it contains a call
+                call_expr = self._find_child_by_type(child, 'call_expression')
+                if call_expr:
+                    call_name = self._get_call_name(call_expr, content)
+                    if call_name:
+                        flow_nodes.append(ControlFlowNode(
+                            type='call',
+                            label=call_name
+                        ))
+                else:
+                    # Generic statement
+                    stmt = content[child.start_byte:child.end_byte].strip()
+                    if stmt and len(stmt) < 100:
+                        flow_nodes.append(ControlFlowNode(
+                            type='statement',
+                            label=stmt[:50]
+                        ))
+        
+        return flow_nodes
+    
+    def _parse_if_statement(self, node: Node, content: str, depth: int) -> Optional[ControlFlowNode]:
+        """Parse if statement"""
+        try:
+            # Get condition
+            condition_node = self._find_child_by_type(node, 'condition_clause')
+            if not condition_node:
+                condition_node = self._find_child_by_type(node, 'parenthesized_expression')
+            
+            condition = "condition"
+            if condition_node:
+                condition = content[condition_node.start_byte:condition_node.end_byte]
+                # Simplify condition
+                condition = condition.replace('\n', ' ').strip()
+                if len(condition) > 50:
+                    condition = condition[:47] + "..."
+            
+            # Get then body
+            then_body = None
+            else_body = None
+            
+            for child in node.children:
+                if child.type == 'compound_statement' and not then_body:
+                    then_body = child
+                elif child.type in ['if_statement', 'compound_statement'] and then_body:
+                    else_body = child
+                    break
+            
+            # Extract flow from bodies
+            then_nodes = []
+            if then_body:
+                then_nodes = self._extract_control_flow(then_body, content, depth + 1)
+            
+            else_nodes = []
+            if else_body:
+                else_nodes = self._extract_control_flow(else_body, content, depth + 1)
+            
+            return ControlFlowNode(
+                type='if',
+                condition=condition,
+                body_nodes=then_nodes,
+                else_nodes=else_nodes
+            )
+        except Exception:
+            return None
+    
+    def _parse_for_statement(self, node: Node, content: str, depth: int) -> Optional[ControlFlowNode]:
+        """Parse for loop"""
+        try:
+            # Get condition/init
+            condition = "loop"
+            for child in node.children:
+                if '(' in content[child.start_byte:child.end_byte]:
+                    condition_text = content[child.start_byte:child.end_byte]
+                    condition = condition_text.replace('\n', ' ').strip()
+                    if len(condition) > 50:
+                        condition = "for loop"
+                    break
+            
+            # Get body
+            body_node = self._find_child_by_type(node, 'compound_statement')
+            body_nodes = []
+            if body_node:
+                body_nodes = self._extract_control_flow(body_node, content, depth + 1)
+            
+            return ControlFlowNode(
+                type='for',
+                condition=condition,
+                body_nodes=body_nodes
+            )
+        except Exception:
+            return None
+    
+    def _parse_while_statement(self, node: Node, content: str, depth: int) -> Optional[ControlFlowNode]:
+        """Parse while loop"""
+        try:
+            # Get condition
+            condition_node = self._find_child_by_type(node, 'condition_clause')
+            if not condition_node:
+                condition_node = self._find_child_by_type(node, 'parenthesized_expression')
+            
+            condition = "loop"
+            if condition_node:
+                condition = content[condition_node.start_byte:condition_node.end_byte]
+                condition = condition.replace('\n', ' ').strip()
+                if len(condition) > 50:
+                    condition = "while loop"
+            
+            # Get body
+            body_node = self._find_child_by_type(node, 'compound_statement')
+            body_nodes = []
+            if body_node:
+                body_nodes = self._extract_control_flow(body_node, content, depth + 1)
+            
+            return ControlFlowNode(
+                type='while',
+                condition=condition,
+                body_nodes=body_nodes
+            )
+        except Exception:
+            return None
+    
+    def _parse_switch_statement(self, node: Node, content: str, depth: int) -> Optional[ControlFlowNode]:
+        """Parse switch statement"""
+        try:
+            # Get condition
+            condition_node = self._find_child_by_type(node, 'condition_clause')
+            if not condition_node:
+                condition_node = self._find_child_by_type(node, 'parenthesized_expression')
+            
+            condition = "switch"
+            if condition_node:
+                condition = content[condition_node.start_byte:condition_node.end_byte]
+                condition = condition.replace('\n', ' ').strip()
+                if len(condition) > 50:
+                    condition = "switch"
+            
+            # Get cases
+            body_node = self._find_child_by_type(node, 'compound_statement')
+            body_nodes = []
+            if body_node:
+                for child in body_node.children:
+                    if child.type in ['case_statement', 'default_statement']:
+                        case_label = content[child.start_byte:child.start_byte + 30].strip()
+                        case_nodes = self._extract_control_flow(child, content, depth + 1)
+                        body_nodes.append(ControlFlowNode(
+                            type='case',
+                            label=case_label,
+                            body_nodes=case_nodes
+                        ))
+            
+            return ControlFlowNode(
+                type='switch',
+                condition=condition,
+                body_nodes=body_nodes
+            )
+        except Exception:
+            return None
+    
+    def _get_call_name(self, node: Node, content: str) -> Optional[str]:
+        """Get function call name from call_expression"""
+        if not node or node.type != 'call_expression':
+            return None
+        
+        func_node = node.children[0] if node.children else None
+        if func_node:
+            call_name = content[func_node.start_byte:func_node.end_byte]
+            # Simplify nested calls
+            if len(call_name) > 50:
+                call_name = call_name[:47] + "..."
+            return call_name
+        return None
     
     def get_code_chunks(self) -> List[Dict[str, str]]:
         """

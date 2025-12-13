@@ -118,8 +118,8 @@ class CPPAnalysisAgent:
         Generate PlantUML diagram
         
         Args:
-            flowchart_type: Type of diagram (function_call, class, module)
-            entry_point: Entry point for function call graph
+            flowchart_type: Type of diagram (function_call, class, module, function_flow)
+            entry_point: Entry point for function call graph or specific function name
             output_name: Custom output name
             
         Returns:
@@ -137,6 +137,36 @@ class CPPAnalysisAgent:
                 entry_point=entry_point,
                 output_name=output_name
             )
+        elif flowchart_type == "function_flow":
+            # Generate detailed flow for a specific function
+            if not entry_point:
+                console.print("[yellow]No function specified. Generating flows for functions with control flow...[/yellow]")
+                # Generate for functions with interesting control flow
+                funcs_with_flow = [f for f in self.parser.functions if f.control_flow][:5]
+                if not funcs_with_flow:
+                    console.print("[red]No functions with control flow found.[/red]")
+                    return ""
+                
+                paths = []
+                for func in funcs_with_flow:
+                    path = self.diagram_generator.generate_detailed_function_flow(func)
+                    paths.append(path)
+                
+                console.print(f"[green]Generated {len(paths)} function flow diagrams[/green]")
+                return paths[0] if paths else ""
+            else:
+                # Find specific function
+                func = None
+                for f in self.parser.functions:
+                    if f.name == entry_point:
+                        func = f
+                        break
+                
+                if not func:
+                    console.print(f"[red]Function '{entry_point}' not found.[/red]")
+                    return ""
+                
+                return self.diagram_generator.generate_detailed_function_flow(func, output_name)
         elif flowchart_type == "class":
             return self.diagram_generator.generate_class_diagram(
                 self.parser.classes,
@@ -150,6 +180,57 @@ class CPPAnalysisAgent:
         else:
             console.print(f"[red]Unknown diagram type: {flowchart_type}[/red]")
             return ""
+    
+    def list_functions(self, limit: int = 20) -> List[str]:
+        """
+        List all functions in the project
+        
+        Args:
+            limit: Maximum number of functions to display
+            
+        Returns:
+            List of function names
+        """
+        if not self.parser.functions:
+            console.print("[red]No functions found. Run analyze_project first.[/red]")
+            return []
+        
+        console.print(f"\n[cyan]Found {len(self.parser.functions)} functions:[/cyan]\n")
+        
+        # Sort by control flow complexity (functions with control flow first)
+        sorted_funcs = sorted(
+            self.parser.functions,
+            key=lambda f: len(f.control_flow) if f.control_flow else 0,
+            reverse=True
+        )
+        
+        table = Table(title="Functions")
+        table.add_column("Name", style="cyan")
+        table.add_column("Return Type", style="green")
+        table.add_column("Control Flow", style="yellow")
+        table.add_column("Calls", style="magenta")
+        table.add_column("File", style="blue")
+        
+        func_names = []
+        for func in sorted_funcs[:limit]:
+            flow_count = len(func.control_flow) if func.control_flow else 0
+            call_count = len(func.calls) if func.calls else 0
+            file_name = Path(func.file_path).name
+            
+            table.add_row(
+                func.name,
+                func.return_type,
+                str(flow_count),
+                str(call_count),
+                file_name
+            )
+            func_names.append(func.name)
+        
+        if len(sorted_funcs) > limit:
+            console.print(f"\n[yellow]Showing {limit} of {len(sorted_funcs)} functions[/yellow]")
+        
+        console.print(table)
+        return func_names
     
     def query(self, question: str) -> str:
         """

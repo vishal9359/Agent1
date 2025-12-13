@@ -6,10 +6,27 @@ An AI-powered agent for analyzing C++ projects using LangChain, Ollama, and Chro
 
 - 🔍 **Code Understanding**: Parse and understand complete C++ projects using tree-sitter
 - 🤖 **RAG System**: Query codebase using natural language with ChromaDB vector database
-- 📊 **PlantUML Diagrams**: Generate text-based diagrams (function calls, classes, modules)
+- 📊 **Advanced PlantUML Diagrams**: Generate detailed flowcharts with control flow (NEW!)
+  - ✅ Function flow diagrams with if/else, loops, switches
+  - ✅ Function call graphs showing inter-function relationships
+  - ✅ Class diagrams with inheritance
+  - ✅ Module structure diagrams
 - 🔓 **Open Source**: Uses only open-source LLM models via Ollama
 - 🎯 **Modular Design**: Works with any C++ project
 - 📝 **SSH Friendly**: Text-based diagrams perfect for terminal/SSH environments
+
+## 🎉 What's New in v2.0
+
+**Major Update**: Function flow diagrams now show actual control flow!
+
+Previously, the agent only generated PlantUML styling. Now it generates **complete flowcharts** with:
+- Decision diamonds for if/else statements
+- Loop structures for for/while
+- Switch/case branches
+- Function calls and returns
+- Proper activity diagram syntax
+
+See `CONTROL_FLOW_UPDATE.md` for details and `EXAMPLES.md` for code examples.
 
 ## Requirements
 
